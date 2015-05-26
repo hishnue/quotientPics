@@ -21,18 +21,33 @@ pix.val = function(pic, x,y){
     " x and y coords vary between -13 and 14
     returns the value of the pic at the coord,
     where stuff outside is zero."
-    if(x < -13 | x > 14 | y < -13 | y > 14){
+    if(bad.coord(x,y)){
         result = 0
     } else {
         result = pic[coord2pic(x,y)]
     }
     return(result)
 }
+bad.coord = function(x,y){
+    result = (x < -13 | x > 14 | y < -13 | y > 14)
+    return(result)
+}
 coord2pic = function(x,y){
-    return( (x + 13) * 28 + 14 + y )
+    y = 1-y
+    if(bad.coord(x,y)){
+        stop("bad coord in coord2pic")
+    }
+    return( (y + 13) * 28 + 14 + x )
 }
 pic2coord = function(z){
-    #the other way!
+    x = (z %% 28) - 14
+    x = ifelse(x==-14,14,x)
+    y =((z - x -14)/28) -13 
+    y = 1-y
+    if(bad.coord(x,y)){
+        stop("coords outside bounds in pic2coord")
+    } 
+    return(c(x,y))
 }
 #two steps: 
 #1) use GL_2 to do some stuff, 
@@ -42,6 +57,22 @@ gl.opp = function(pic, a,b,c,d){
 #2) do a shift to move (0,0) to some other point
 shift.opp  = function(pic, x,y){
    # return a pic 
+   result = replicate(784, 0)
+   xi = floor(x)
+   yi = floor(y)
+   xf = x - xi
+   yf = y - yi
+   for( i in -13:14){
+        i2 = i - xi
+        for(j in -13:14){
+            j2 = j - yi
+            result[coord2pic(i,j)]  = pix.val(pic, i2,j2)*(1-xf)*(1-yf) +
+                                      pix.val(pic, i2-1,j2)*xf*(1-yf) +
+                                      pix.val(pic, i2,j2-1)*(1-xf)*yf +
+                                      pix.val(pic, i2-1,j2-1)*xf*yf 
+        }
+   }
+   return(result)
 }
 
 # umm, once you have quotient space, try simple 10-means clustering
